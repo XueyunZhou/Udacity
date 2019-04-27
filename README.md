@@ -14,3 +14,5 @@ The tools used in projects are listed as below.
 * Exploration of the FBI Gun [Data](https://github.com/BuzzFeedNews/nics-firearm-background-checks/blob/master/README.md) [code](https://github.com/XueyunZhou/Udacity/blob/master/1.3%20Investigate%20a%20Dataset/1.3%20Investigate%20a%20Dataset.ipynb)
 
 * Analysis in A/B test results for the new page [code](https://github.com/XueyunZhou/Udacity/blob/master/1.4%20Analyze%20A:B%20Test%20Results/Analyze%20A:B%20Test%20Results.ipynb)
+
+* Pair-Sample T Test on a Perceptual Phenomenon [code](https://github.com/XueyunZhou/Udacity/blob/master/2.1%20Test%20a%20Perceptual%20Phenomenon/2.1%20Test%20a%20Perceptual%20Phenomenon%20.ipynb)
