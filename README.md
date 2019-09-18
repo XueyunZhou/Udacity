@@ -17,7 +17,7 @@ The tools used in projects are listed as below.
 
 * RStudio: Exploratory Data Analysis of the wine quality dataset [code](https://github.com/XueyunZhou/Udacity/blob/master/2.3%20RStudio%20-%20EDA/Explore%20and%20Summarize%20Data.Rmd)
 
-* Tableau: Story telling and visualization on the baseball player dataset [code]()
+* Tableau: Story telling and visualization on the baseball player dataset [report](https://github.com/XueyunZhou/Udacity/blob/master/2.4%20Tableau%20-%20Visualization/Create%20a%20Tableau%20Story.pdf)
 
 ## **Statistical Analysis**
 * Python: A/B Test on a new page [code]()
