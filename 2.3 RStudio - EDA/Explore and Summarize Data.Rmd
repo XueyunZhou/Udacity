@@ -1,0 +1,534 @@
+White Wine Quality Exploration
+========================================================
+
+This report explores a dataset containing quality grades and attributes for 4898 samples of white wine.
+
+Data source:  P. Cortez, A. Cerdeira, F. Almeida, T. Matos and J. Reis. 
+  Modeling wine preferences by data mining from physicochemical properties.
+  In Decision Support Systems, Elsevier, 47(4):547-553. ISSN: 0167-9236.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+# Load all of the packages that you end up using
+# in your analysis in this code chunk.
+
+# Notice that the parameter "echo" was set to FALSE for this code chunk.
+# This prevents the code from displaying in the knitted HTML output.
+# You should set echo=FALSE for all code chunks in your file.
+
+library(ggplot2)
+library(tidyr)
+library(purrr)
+library(GGally)
+library(gridExtra)
+library(memisc)
+library(RColorBrewer)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Load_the_Data}
+# Load the Data
+df <- read.csv("/Users/campsis/Downloads/wineQualityWhites.txt", sep = ',')
+```
+
+# Univariate Plots Section
+
+# Univariate Analysis
+
+### What is the structure of your dataset?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Univariate_Plots}
+dim(df)
+str(df)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create a subset for numeric variables
+exclude_var <- names(df) %in% c("X") 
+df_num <- df[!exclude_var]
+
+summary(df_num)
+```
+
+The dataset consists of 12 variables, with 4898 observations.
+
+
+### What is/are the main feature(s) of interest in your dataset?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Make boxplots for all numeric variables
+df_num %>%
+  keep(is.numeric) %>% 
+  gather() %>% 
+  ggplot(aes(x = key, y = value)) +
+  facet_wrap(~ key, scales = "free", ncol = 6) +
+  geom_boxplot() +
+  stat_summary(fun.y = mean, geom = 'point', shape = 4)
+```
+
+From boxplots for each variable, it is noticeable that the distributions of most variables (chlorides, citric.acid, density, fixed.acidity, free.sulfur.dioxide, residual.sugar, sulphates, total.sulfur.dioxide, volatile.acidity) are right-skewed.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Make histograms for all numeric variables
+df_num %>%
+  keep(is.numeric) %>% 
+  gather() %>% 
+  ggplot(aes(value)) +
+    facet_wrap(~ key, scales = "free") +
+    geom_histogram()
+```
+
+From histograms for each variable, the right-skewed distributions are clearly illustrated. To normalize the distributions, applying transformation in the logarithmic function.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Logarithmic transformation and make histograms for all numeric variables
+df_num %>%
+  keep(is.numeric) %>% 
+  gather() %>% 
+  ggplot(aes(value)) +
+  facet_wrap(~ key, scales = "free") +
+  geom_histogram() +
+  scale_x_log10()
+```
+
+After logarithmic transformation, most right-skewed variables (chlorides, density, fixed.acidity, sulphates, volatile.acidity) conform more closely to the normal distribution. But some variables (citric.acid, free.sulfur.dioxide, total.sulfur.dioxide) turn out to be right-skewed. So it is not reasonable to perform logarithmic transformation for the latter.
+
+Another interesting investigation is that the logarithmic transformation of residual.sugar turns out to be double peaks. This will be further investigated later.
+
+
+### What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create a histogram and a logarithmic histogram for chlorides by contrast
+
+p1 <- ggplot(aes(x = chlorides), data = df) +
+  geom_histogram(binwidth = 0.005) +
+  scale_x_continuous(breaks = seq(0, 0.35, 0.02))
+
+p2 <- ggplot(aes(x = chlorides), data = df) +
+  geom_histogram(binwidth = 0.025) +
+  scale_x_log10()
+
+grid.arrange(p1, p2)
+```
+
+Take chlorides as an example. The distribution is lone-tailed at right, with multiple outliers on the right. From summary, it can also be seen that the variation is small from the minimum 0.00900 to the 3rd Quantile 0.05000, while the maximum jumps to 0.34600.
+
+After logarithmic transformation, the distribution tends to be more normalized.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create a bar chart for the dependent variable quality
+ggplot(aes(x = quality), data = df) +
+  geom_bar() +
+  scale_x_continuous(breaks = seq(3, 9, 1))
+```
+
+The distribution of quality is generally normalized. Most kinds of white wine have quality grades of 5, 6, and 7.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create a density chart for alcohol
+qplot(x = alcohol, y = ..count../sum(..count..), 
+       data = df, geom = "freqpoly", binwidth = 0.1)
+```
+
+The distribution of alcohol is slightly right-skewed.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create a density chart for density
+qplot(x = alcohol, data = df, geom = "density")
+```
+
+The distribution of density is slightly right-skewed.
+
+
+### Did you create any new variables from existing variables in the dataset?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create a variable for the percentage of free.sulfur.dioxide in total.sulfur.dioxide
+df$free_sd_rate <- df$free.sulfur.dioxide / df$total.sulfur.dioxide
+
+# Make a histogram for free_sd_rate
+ggplot(aes(x = free_sd_rate), data = df) +
+  geom_histogram(binwidth = 0.01) +
+  scale_x_continuous(breaks = seq(0, 0.8, 0.05))
+```
+
+Create a variable by calculating the rate of free.sulfur.dioxide to total.sulfur.dioxide, and plot its histogram.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+summary(df$free_sd_rate)
+```
+
+Although the free.sulfur.dioxide and the total.sulfur.dioxide are right-skewed, their ratio is closely normalized. The mean 0.25558 and the median 0.25368 are close to each other. This means the percentage of the free sulfur dioxide in the total sulfur dioxide centralizes between 0.2 to 0.3.
+
+
+### Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create a histogram and a logarithmic histogram for residual.sugar by contrast
+
+p3 <- ggplot(aes(x = residual.sugar), data = df) +
+  geom_histogram(binwidth = 1) +
+  scale_x_continuous(breaks = seq(0, 66, 2))
+
+p4 <- ggplot(aes(x = residual.sugar), data = df) +
+  geom_histogram(binwidth = 0.05) +
+  scale_x_log10()
+
+grid.arrange(p3, p4)
+```
+
+The residual.sugar has a similar situation with chlorides. Its maximum is far from its range from minimum to 3rd quantile. The difference is that after logarithmic transformation, there are two peaks.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Create a histogram and a logarithmic histogram for residual.sugar under 10.0 by contrast
+
+p5 <- ggplot(aes(x = residual.sugar), data = df) +
+  geom_histogram(binwidth = 0.1) +
+  scale_x_continuous(limits = c(0, 10),
+                     breaks = seq(0, 10, 1))
+
+p6 <- ggplot(aes(x = residual.sugar),
+             data = subset(df, residual.sugar < 10)) +
+  geom_histogram(binwidth = 0.05) +
+  scale_x_log10()
+
+grid.arrange(p5, p6)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Calculate the count percentage of the second peak in the total count
+nrow(subset(df, residual.sugar > 3 & residual.sugar < 10)) / nrow(df)
+```
+
+Break down the left part (less than 10.00) of residual.sugar into details. The majority centralizes between 0.00 to 3.00, which forms a peak after logarithmic transformation. The data from 3.00 to 10.00 counts for 36.79% of the total observations, which forms another peak after logarithmic transformation.
+
+As a result, the distribution of residual.sugar is dispersive. The majority of the data centralizes between 0.00 to 3.00, and a great deal of the remaining spreads between 3.00 to 10.00.
+
+
+
+# Bivariate Plots Section
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, Bivariate_Plots}
+# Create bivariate plots for all numeric variables
+ggpairs(df_num,
+        lower = list(continuous = wrap("points", shape = I('.'))),
+        upper = list(combo = wrap("box", outlier.shape = I('.'))))
+```
+
+From the ggpairs charts, the density and alcohol have correlation coefficients of over ±0.3 with quality. But these two independent variables have a high correlation coefficient of -0.78. This should be taken care of to avoid collinearity in the linear regression model.
+
+
+# Bivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Correlation coefficient for alcohol and quality
+with(df, cor.test(alcohol, quality))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot and boxplot for alcohol and quality
+ggplot(aes(y = alcohol, x = factor(quality)), data = df) +
+  geom_jitter(alpha = 0.1) +
+  stat_summary(geom = 'point', fun.y = 'mean', color = "blue") +
+  geom_boxplot(alpha = 0.1, color = "orange")
+```
+
+From the scatterplot and boxplot, it can be seen high quality wine tends to have high alcohol.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Correlation coefficient for density and quality
+with(df, cor.test(density, quality))
+```
+
+The Pearson's correlation coefficient of density and quality is -0.3071233, with the 95 percent confidence interval of [-0.3322718, -0.2815385].
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot and boxplot for alcohol and quality
+ggplot(aes(y = density, x = factor(quality)), data = df) +
+  geom_jitter(alpha = 0.1) +
+  stat_summary(geom = 'point', fun.y = 'mean', color = "blue") +
+  geom_boxplot(alpha = 0.1, color = "orange") +
+  coord_cartesian(ylim = c(quantile(df$density, 0.01), 
+                           quantile(df$density, 0.99)))
+```
+
+From the scatterplot and boxplot, it can be seen high quality wine tends to have low density.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Correlation coefficient for density and quality
+with(df, cor.test(alcohol, density))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot for alcohol and density with a line of mean density
+ggplot(aes(x = alcohol, y = density), data = df) +
+  geom_point(alpha = 0.1, position = position_jitter(h = 0)) +
+  geom_line(stat = 'summary', fun.y = mean, color = "yellow") +
+  coord_cartesian(ylim = c(0.9871, quantile(df$density, 0.99)),
+                  xlim = c(quantile(df$alcohol, 0.01), 14.20))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot for alcohol and density with smooth lines
+ggplot(aes(x = alcohol, y = density), data = df) +
+  geom_point(alpha = 0.1, position = position_jitter(h = 0)) +
+  geom_smooth(color = "green") +
+  geom_smooth(method = "lm") +
+  coord_cartesian(ylim = c(0.9871, quantile(df$density, 0.99)),
+                  xlim = c(quantile(df$alcohol, 0.01), 14.20))
+```
+
+The alcohol and density, which both have high correlation with quality, are strongly correlated with each other.
+
+
+### Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Correlation coefficient for free.sulfur.dioxide and total.sulfur.dioxide
+with(df, cor.test(free.sulfur.dioxide, total.sulfur.dioxide))
+with(df, cor.test(sqrt(free.sulfur.dioxide), total.sulfur.dioxide))
+```
+
+It is reasonable to suppose the total.sulfur.dioxide is correlated with the free.sulfur.dioxide. By correlation test, the square root of free.sulfur.dioxide has a higher correlation coefficient with the total.sulfur.dioxide.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot for free.sulfur.dioxide and total.sulfur.dioxide with a line of mean total.sulfur.dioxide
+ggplot(aes(x = free.sulfur.dioxide,
+           y = total.sulfur.dioxide), data = df) +
+  geom_point(alpha = 0.1, position = position_jitter(h = 0)) +
+  geom_line(stat = 'summary', fun.y = mean, color = "yellow") +
+  coord_trans(limy = c(9.0, quantile(df$total.sulfur.dioxide, 0.99))) +
+  scale_x_sqrt(limits = c(2, 100))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot for free.sulfur.dioxide and total.sulfur.dioxide with smooth lines
+ggplot(aes(x = free.sulfur.dioxide,
+           y = total.sulfur.dioxide), data = df) +
+  geom_point(alpha = 0.1, position = position_jitter(h = 0)) +
+  geom_smooth(color = "green") +
+  geom_smooth(method = "lm") +
+  coord_trans(limy = c(9.0, quantile(df$total.sulfur.dioxide, 0.99))) +
+  scale_x_sqrt(limits = c(2, 100))
+```
+
+By the trend of mean, median, and smoothed conditional means, it can be seen that the square root of free.sulfur.dioxide has a positive correlation with total.sulfur.dioxide.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Correlation coefficient for free_sd_rate and quality
+with(df, cor.test(free_sd_rate, quality))
+```
+
+The free_sd_rate has a weak correlation with quality. But this coefficient (0.1972141) is higher than two variables with quality (free.sulfur.dioxide 0.00816 and total.sulfur.dioxide 0.175). This means the influences of numerator and denominator on quality are not as steady as their percentage.
+
+
+### What was the strongest relationship you found?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Correlation coefficient for residual.sugar and density
+with(df, cor.test(residual.sugar, density))
+```
+
+The residual.sugar and density have the highest correlation coefficient in the ggpairs chart.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot for residual.sugar and density with a line of mean density
+ggplot(aes(x = residual.sugar, y = density), data = df) +
+  geom_point(alpha = 0.1, position = position_jitter(h = 0)) +
+  geom_line(stat = 'summary', fun.y = mean, color = "yellow") +
+  coord_cartesian(ylim = c(0.9871, quantile(df$density, 0.99)),
+                  xlim = c(0.600, quantile(df$residual.sugar, 0.99))) +
+  scale_x_continuous(breaks = seq(0, 20, 1))
+```
+
+By the mean and median, there is a strong upward trend of residual.sugar to density.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot for residual.sugar and density with smooth lines
+ggplot(aes(x = residual.sugar, y = density), data = df) +
+  geom_point(alpha = 0.1, position = position_jitter(h = 0)) +
+  geom_smooth(color = "green") +
+  geom_smooth(method = "lm") +
+  coord_cartesian(ylim = c(0.9871, quantile(df$density, 0.99)),
+                  xlim = c(0.600, quantile(df$residual.sugar, 0.99))) +
+  scale_x_continuous(breaks = seq(0, 20, 1))
+```
+
+The smoothed conditional means fit well for residual.sugar to density. However, the scatter points distribute differently by the point of 2.5. Because the data smaller than 2.5 are messy and greater than 2.5 are ordered, it is supposed that the residual.sugar greater than 2.5 has a higher correlation with quality. 
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Correlation coefficient for residual.sugar and density by spliting residual.sugar at 2.5
+with(subset(df, residual.sugar < 2.5), cor.test(residual.sugar, density))
+with(subset(df, residual.sugar > 2.5), cor.test(residual.sugar, density))
+```
+
+Split the dataset by residual.sugar at 2.5, and calculate the correlation coefficients separately. The separate coefficients (0.05578007 and 0.8389109) are both lower 0.8389665. This means the residual.sugar smaller than 2.5 also contributes correlation to the whole dataset, so this part cannot be splitted or removed.
+
+
+
+# Multivariate Plots Section
+
+# Multivariate Analysis
+
+### Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot for residual.sugar and density colored by quality
+ggplot(aes(x = residual.sugar, y = density, 
+           color = quality), data = df) +
+  geom_jitter(alpha = 0.25) +
+  coord_cartesian(ylim = c(0.9871, quantile(df$density, 0.99)),
+                  xlim = c(0.600, quantile(df$residual.sugar, 0.99)))
+```
+
+In the chart, higher quality has lighter color. The light color points mostly concentrate in lower density and lower residual.sugar. This means high quality wine tends to have lower density and less residual sugar.
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot for free.sulfur.dioxide and total.sulfur.dioxide colored by quality
+ggplot(aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide, 
+           color = quality), data = df) +
+  geom_jitter(alpha = 0.25) +
+  coord_cartesian(ylim = c(9.0, quantile(df$total.sulfur.dioxide, 0.99))) +
+  scale_x_sqrt(limits = c(2, 100))
+```
+
+In this chart, higher quality points and lower quality points crowded together. It seems the high quality wine may have different free.sulfur.dioxide and different total.sulfur.dioxide.
+
+
+### Were there any interesting or surprising interactions between features?
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Scatterplot for alcohol and density colored by quality
+ggplot(aes(x = alcohol, y = density, 
+           color = quality), data = df) +
+  geom_jitter(alpha = 0.25) +
+  coord_cartesian(ylim = c(0.9871, quantile(df$density, 0.99)),
+                  xlim = c(quantile(df$alcohol, 0.01), 14.20))
+```
+
+In this chart, higher quality points concentrate in higher alcohol and lower density. This means the high quality wine tends to have high alcohol and low density. This conclusion is in line with the previous bivariate analysis.
+
+
+### OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+# Creat a model of quality on alcohol
+m1 <- lm(I(quality) ~ I(alcohol), data = df)
+
+# Add density into the model
+m2 <- update(m1, ~ . + I(density))
+
+# Add all left variables into the model
+m3 <- update(m2, ~ . + I(fixed.acidity) + I(volatile.acidity) +
+               I(citric.acid) + I(residual.sugar) + I(chlorides) +
+               I(free.sulfur.dioxide) + I(total.sulfur.dioxide) +
+               I(pH) + I(sulphates))
+
+# Get rid of variables with P-value over 0.1
+m4 <- update(m2, ~ . + I(fixed.acidity) + I(volatile.acidity) +
+               I(residual.sugar) + I(free.sulfur.dioxide) +
+               I(pH) + I(sulphates))
+
+# Change the variable free.sulfur.dioxide with free_sd_rate
+m5 <- update(m2, ~ . + I(fixed.acidity) + I(volatile.acidity) +
+               I(residual.sugar) + I(free_sd_rate) +
+               I(pH) + I(sulphates))
+
+mtable(m1, m2, m3, m4, m5, sdigits = 3)
+```
+
+The m3 model integrates all variables with R-squared of 0.282, but there are variables (citric.acid, chlorides, total.sulfur.dioxide) with a low significance.
+
+The m4 model gets rid of variables with a low significance, with R-squared of 0.282, and all remaining variables significant at the 0.1% level. The R-squared does not increase by getting rid of these variables.
+
+The m5 model substitudes free.sulfur.dioxide and total.sulfur.dioxide with their ratio, increasing the R-squared to 0.287. All the variables are significant at the 0.1% level, except fixed.acidity at the 1% level.
+
+
+
+------
+
+# Final Plots and Summary
+
+### Plot One
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_One}
+# Bar chart for the dependent variable quality
+ggplot(aes(x = quality), data = df) +
+  geom_bar(fill=I("#F79420"), color='black') +
+  scale_x_continuous(breaks = seq(3, 9, 1),
+                     aes(xlab='Quality')) +
+  ggtitle('Quality Bar Chart')
+```
+
+### Description One
+This is the bar chart of the dependent variable quality. It shows the distribution of quality is generally normalized. Most kinds of white wine have quality grades of 5, 6, and 7.
+
+
+### Plot Two
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Two}
+# Scatterplot for alcohol and density with a line of mean density and a smooth line
+ggplot(aes(x = alcohol, y = density), data = df) +
+  geom_point(alpha = 0.1, position = position_jitter(h = 0)) +
+  geom_line(stat = 'summary', fun.y = mean, color = "yellow") +
+  geom_smooth(method = "lm") +
+  coord_cartesian(ylim = c(0.9871, quantile(df$density, 0.99)),
+                  xlim = c(quantile(df$alcohol, 0.01), 14.20)) +
+  labs(x = 'Alcohol (% by volume)',
+       y = 'Density (g / cm^3)',
+       title = 'Scatterplot of Density and Alcohol')
+```
+
+### Description Two
+This is the scatterplot of density and alcohol, with summarizing means and smoothed conditional means of alcohol. It can be seen that the alcohol and density has a strong correlation and might cause collinearity.
+
+However, both variables are incorporated into the linear regression model, because they do not decrease the explanation to the model, and they are significant at the 0.1% level.
+
+
+### Plot Three
+```{r echo=FALSE, message=FALSE, warning=FALSE, Plot_Three}
+# Scatterplot for residual.sugar and density colored by quality
+ggplot(aes(x = residual.sugar, y = density, 
+           color = factor(quality)), data = df) +
+  geom_jitter(alpha = 0.5) +
+  coord_cartesian(ylim = c(0.9871, quantile(df$density, 0.99)),
+                  xlim = c(0.600, quantile(df$residual.sugar, 0.99))) +
+  scale_color_brewer(type = 'div',
+    guide = guide_legend(title = 'Quality', reverse = T,
+    override.aes = list(alpha = 1, size = 2))) +
+  labs(x = 'Residual Sugar (g / dm^3)',
+       y = 'Density (g / cm^3)',
+       title = 'Scatterplot of Residual Sugar and Density Colored by Quality')
+```
+
+### Description Three
+This shows the scatterplot of density and residual.sugar colored by quality. The points of high quality mostly concentrate in lower density and lower residual.sugar
+
+
+
+------
+
+# Reflection
+1. This research explores 12 variables of 4898 observations for white wine quality factors. Five linear regression models are created, and the m5 model fits best for the dataset.
+
+2. The correlation coefficients of most independent variables with the dependent variable are low. But some variables which have low correlation coefficients with quality surprisingly fit well into the OLS model. This means the quality is not influenced by the chemical components separately; it might be affected by the interaction of various chemical components.
+
+3. The Plot Three illustrates that although the correlation coefficient can help explain the relationships between variables, a low correlation coefficient does not necessarily mean this variable cannot be added into the model. Indeed, residual.sugar fits well in the linear regression model, with a significance at the 0.1% level. This means a variable with a low correlation coefficient might also be able to explain the model. Thus, prudence is needed when getting rid of some variables which seem to be not related.
+
+4. In the analysis, firstly I generally analysis all the variables. Then I calculate the correlation coefficients among variables. For the high correlated pairs, I create bivariate plots. Then I create scatterplots for the high correlated pairs colored by quality, in order to see how two independent variables together influence the dependent variable. This thinking and analysing approachs help me understand the interactive affects of different chemical components on the white wine quality.
+
+5. In the future, whether a variable can be incorporated in the model should not be determined only by the correlation coefficient. I would like to further investigate how to decide a variable should be incorporated into a model and how it affects the model.
