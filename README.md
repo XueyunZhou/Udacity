@@ -7,7 +7,7 @@ The tools used in projects are listed as below.
 -- Python Modules: pandas, numpy, matplotlib, statsmodels.api  
 
 ## **Data Analysis**
-* SQL/Excel: Exploration of weather trends in Hangzhou and world average [report]()
+* SQL/Excel: Exploration of weather trends in Hangzhou and world average [report](https://github.com/XueyunZhou/Udacity/blob/master/1.1%20SQL%2C%20Excel%20-%20Time%20Series%20Analysis/Exploring%20Weather%20Trends.pdf)
 
 * Python: Interactive data analysis for bikeshare in three US cities in 2016 [code](https://github.com/XueyunZhou/Udacity/blob/master/1.2%20Python%20-%20Interactive%20Code/Explore%20US%20Bikeshare%20Data.py)
 
@@ -20,6 +20,6 @@ The tools used in projects are listed as below.
 * Tableau: Story telling and visualization on the baseball player dataset [report](https://github.com/XueyunZhou/Udacity/blob/master/2.4%20Tableau%20-%20Visualization/Create%20a%20Tableau%20Story.pdf)
 
 ## **Statistical Analysis**
-* Python: A/B Test on a new page [code]()
+* Python: A/B Test on a new page [code](https://github.com/XueyunZhou/Udacity/blob/master/1.4%20Python%20-%20AB%20Test/Analyze%20AB%20Test%20Results.ipynb)
 
 * Python: Pair-Sample T Test on a perceptual phenomenon [code](https://github.com/XueyunZhou/Udacity/blob/master/2.1%20Python%20-%20T%20Test/Test%20a%20Perceptual%20Phenomenon.ipynb)
